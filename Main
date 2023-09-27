@@ -1,0 +1,259 @@
+"""
+Map Search
+"""
+
+import comp140_module7 as maps
+
+class Queue:
+    """
+    A simple implementation of a FIFO queue.
+    """
+    def __init__(self):
+        """
+        Initialize the queue.
+        """
+        self._queue = []
+
+    def __len__(self):
+        """
+        Returns: an integer representing the number of items in the queue.
+        """
+        return len(self._queue)     
+
+    def __str__(self):
+        """
+        Returns: a string representation of the queue.
+        """
+        return str(self._queue)
+
+    def push(self, item):
+        """
+        Add item to the queue.
+
+        input:
+            - item: any data type that's valid in a list
+        """
+        self._queue.append(item)
+
+    def pop(self):
+        """
+        Remove the least recently added item.
+
+        Assumes that there is at least one element in the queue.  It
+        is an error if there is not.  You do not need to check for
+        this condition.
+
+        Returns: the least recently added item.
+        """
+        return self._queue.pop(0)
+
+    def clear(self):
+        """
+        Remove all items from the queue.
+        """
+        self._queue = []
+
+
+class Stack:
+    """
+    A simple implementation of a LIFO stack.
+    """
+    def __init__(self):
+        """
+        Initialize the stack.
+        """
+        self._stack = []
+
+    def __len__(self):
+        """
+        Returns: an integer representing the number of items in the stack.
+        """
+        return len(self._stack)     
+
+    def __str__(self):
+        """
+        Returns: a string representation of the stack.
+        """
+        return str(self._stack)
+
+    def push(self, item):
+        """
+        Add item to the queue.
+
+        input:
+            - item: any data type that's valid in a list
+        """
+        self._stack.append(item)
+
+    def pop(self):
+        """
+        Remove the least recently added item.
+
+        Assumes that there is at least one element in the stack.  It
+        is an error if there is not.  You do not need to check for
+        this condition.
+
+        Returns: the least recently added item.
+        """
+        return self._stack.pop(-1)
+
+    def clear(self):
+        """
+        Remove all items from the stack.
+        """
+        self._stack = []
+    
+
+
+def bfs_dfs(graph, rac_class, start_node, end_node):
+    """
+    Performs a breadth-first search or a depth-first search on graph
+    starting at the start_node.  The rac_class should either be a
+    Queue class or a Stack class to select BFS or DFS.
+
+    Completes when end_node is found or entire graph has been
+    searched.
+
+    inputs:
+        - graph: a directed Graph object representing a street map
+        - rac_class: a restricted access container (Queue or Stack) class to
+          use for the search
+        - start_node: a node in graph representing the start
+        - end_node: a node in graph representing the end
+
+    Returns: a dictionary associating each visited node with its parent
+    node.
+    """
+    # Initialize all data structures based on whether its a stack of queue
+    access = rac_class()
+    dist = {} #distance dictionary	
+    parent = {} #parent dictionary
+    # Initialize each node's distance and parent (no nodes have been 
+    # visited yet)
+    for node in graph.nodes():
+        dist[node] = float('inf')
+        parent[node] = None
+    dist[start_node] = 0
+    access.push(start_node)
+    while len(access) != 0:#while it is empty 
+        node = access.pop()
+        nbrs = graph.get_neighbors(node)  
+        for nbr in nbrs:
+            # Only update neighbors that have not been seen before
+            if dist[nbr] == float('inf'):
+                #update diciontary and parent and push the next neighbor
+                dist[nbr] = dist[node] + 1
+                parent[nbr] = node
+                if nbr == end_node:
+                    return parent
+                access.push(nbr)
+    return parent
+
+def dfs(graph, start_node, end_node, parent):
+    """
+    Performs a recursive depth-first search on graph starting at the
+    start_node.
+
+    Completes when end_node is found or entire graph has been
+    searched.
+
+    inputs:
+        - graph: a directed Graph object representing a street map
+        - start_node: a node in graph representing the start
+        - end_node: a node in graph representing the end
+        - parent: a dictionary that initially has one entry associating
+                  the original start_node with None
+
+    Modifies the input parent dictionary to associate each visited node
+    with its parent node
+    """
+    #base case when start node is end node
+    if start_node == end_node:
+        return parent
+    neighbor_node = graph.get_neighbors(start_node)
+    for neighbors in neighbor_node:
+    #base case #2 when graph has been traversed
+        if neighbors not in parent.keys():
+            parent[neighbors] = start_node
+            dfs(graph, neighbors, end_node, parent)
+            #recursive statement by calling the function again but using neighbors
+    return parent
+        
+
+def astar(graph, start_node, end_node,
+          edge_distance, straight_line_distance):
+    """
+    Performs an A* search on graph starting at start_node.
+
+    Completes when end_node is found or entire graph has been
+    searched.
+
+    inputs:
+        - graph: a directed Graph object representing a street map
+        - start_node: a node in graph representing the start
+        - end_node: a node in graph representing the end
+        - edge_distance: a function which takes two nodes and a graph
+                         and returns the actual distance between two
+                         neighboring nodes
+        - straight_line_distance: a function which takes two nodes and
+                         a graph and returns the straight line distance 
+                         between two nodes
+
+    Returns: a dictionary associating each visited node with its parent
+    node.
+    """
+    #initailize all the necessary steps
+    open_set = []
+    closed_set = []
+    parent = {}
+    open_set.append(start_node)
+    g_cost = {}
+    h_cost = {}
+    f_cost = {}
+    g_cost[start_node] = 0 #store g_cost as 0 for the start node
+    parent[start_node] = None#store parent value as none for start node
+    while len(open_set) > 0: #while its not empty
+        min_node = open_set[0] #minimum node
+        min_dist = g_cost[min_node] + straight_line_distance(min_node, end_node, graph)
+        #f_cost of minimum node
+        for iteration in open_set:
+            current_dist = g_cost[iteration] + straight_line_distance(iteration, end_node, graph)
+            #f_cost of all the other nodes
+            if current_dist < min_dist:
+                #if any of the other nodes are smaller, than make that the minimum dist and node
+                min_dist = current_dist                                      
+                min_node = iteration
+        open_set.remove(min_node)
+        closed_set.append(min_node)
+        #remove it from open set and move it to closed set
+        for neighbor in graph.get_neighbors(min_node):
+            #get all the neighbor nodes
+            if neighbor in closed_set:
+                continue
+                #if neighbors are in closed_set, they cant be used anymore
+            if neighbor not in open_set:
+                if neighbor not in closed_set:
+                    #if neighbors are not in open set or not in closed set
+                    #update g,h,f costs
+                    g_cost[neighbor] = edge_distance(min_node, neighbor, graph) + g_cost[min_node]
+                    h_cost[neighbor] = straight_line_distance(neighbor, end_node, graph)
+                    f_cost[neighbor] = g_cost[neighbor] + h_cost[neighbor]
+                    #update the parent dictionary
+                    parent[neighbor] = min_node
+                    #since neighbor node has been found, put it in open set
+                    open_set.append(neighbor)
+            if neighbor in open_set:
+                if edge_distance(min_node, neighbor, graph) + g_cost[min_node] <\
+                g_cost[neighbor]:
+                #if new cost < than old cost update everything
+                    g_cost[neighbor] = edge_distance(min_node, neighbor, graph) + g_cost[min_node]
+                    h_cost[neighbor] = straight_line_distance(neighbor, end_node, graph)
+                    f_cost[neighbor] = g_cost[neighbor] + h_cost[neighbor]
+                    parent[neighbor] = min_node
+    return parent # return parent
+
+# You can replace functions/classes you have not yet implemented with
+# None in the call to "maps.start" below and the other elements will
+# work.
+
+maps.start(bfs_dfs, Queue, Stack, dfs, astar)
